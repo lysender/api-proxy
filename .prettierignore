@@ -1,0 +1,10 @@
+build
+dist
+uploads
+node_modules
+docs
+charts
+resources
+.git
+.github
+.idea
