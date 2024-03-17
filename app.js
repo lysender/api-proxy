@@ -5,7 +5,10 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const {
+  createProxyMiddleware,
+  fixRequestBody,
+} = require('http-proxy-middleware');
 const cors = require('cors');
 
 const indexRouter = require('./routes/index');
@@ -23,12 +26,28 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
+const handleOnProxyReq = (proxyReq, req, res, next) => {
+  if (req.locals && req.locals.internalAuth) {
+    proxyReq.setHeader('Authorization', req.locals.internalAuth);
+  }
+  fixRequestBody(proxyReq, req);
+};
+
+const handleOnProxyReqWs = (proxyReq, req, socket, options, head) => {
+  if (req.locals && req.locals.internalAuth) {
+    proxyReq.setHeader('Authorization', req.locals.internalAuth);
+  }
+  fixRequestBody(proxyReq, req);
+};
+
 // Create proxies
 const targetProxy = createProxyMiddleware({
   target: process.env.PROXY_TARGET_HOST,
   changeOrigin: true,
   logLevel: 'debug',
   ws: true,
+  onProxyReq: handleOnProxyReq,
+  onProxyReqWs: handleOnProxyReqWs,
 });
 
 app.use('/', indexRouter);
